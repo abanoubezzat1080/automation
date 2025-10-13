@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
 from notion_client import Client
+import re
 
 
 @dataclass
@@ -202,6 +203,23 @@ class NotionExporter:
 
 # ------------------------------ CLI ---------------------------------
 
+def _extract_notion_id_from_url(url: Optional[str]) -> Optional[str]:
+    if not url:
+        return None
+    # Match dashed UUID first
+    m = re.search(
+        r"([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})",
+        url,
+    )
+    if m:
+        return m.group(1)
+    # Fallback: 32-hex undashed id
+    m2 = re.search(r"([0-9a-fA-F]{32})", url)
+    if m2:
+        return m2.group(1)
+    return None
+
+
 def parse_args() -> ExportOptions:
     load_dotenv()  # Load .env if present
 
@@ -210,7 +228,22 @@ def parse_args() -> ExportOptions:
             "Export a Notion page: properties, blocks, and child databases (with pagination)."
         )
     )
-    parser.add_argument("page_id", help="Notion page ID (UUID, with or without dashes)")
+    # Make page_id optional; allow env/flags/URL fallback
+    parser.add_argument(
+        "page_id",
+        nargs="?",
+        help="Notion page ID (UUID, with or without dashes)",
+    )
+    parser.add_argument(
+        "--page-id",
+        dest="page_id_opt",
+        help="Explicit Notion page ID (alternative to positional)",
+    )
+    parser.add_argument(
+        "--url",
+        dest="page_url",
+        help="Notion page URL (the ID will be extracted)",
+    )
     parser.add_argument(
         "--token",
         dest="notion_token",
@@ -224,8 +257,24 @@ def parse_args() -> ExportOptions:
     )
 
     args = parser.parse_args()
+
+    # Resolve page id from positional, flag, URL, or env var
+    env_page_id = os.getenv("NOTION_PAGE_ID")
+    resolved_from_url = _extract_notion_id_from_url(args.page_url) if args.page_url else None
+    resolved_page_id = (
+        args.page_id
+        or args.page_id_opt
+        or resolved_from_url
+        or env_page_id
+    )
+
+    if not resolved_page_id:
+        parser.error(
+            "No page_id provided. Provide positional PAGE_ID, --page-id, --url, or set $NOTION_PAGE_ID."
+        )
+
     return ExportOptions(
-        page_id=args.page_id,
+        page_id=resolved_page_id,
         notion_token=args.notion_token,
         pretty=not args.no_pretty,
     )
