@@ -1,0 +1,8 @@
+notion-client==2.2.1
+gspread==5.12.4
+google-auth==2.35.0
+google-auth-oauthlib==1.2.1
+google-api-python-client==2.149.0
+PyYAML==6.0.2
+python-dateutil==2.9.0.post0
+tenacity==9.0.0

@@ -1,0 +1,34 @@
+notion:
+  # Preferred: set NOTION_TOKEN in env and omit 'token'
+  token_env: NOTION_TOKEN
+  # Or provide a token directly (not recommended to commit):
+  # token: "secret_..."
+  database_id: "YOUR_NOTION_DATABASE_ID"
+
+sheets:
+  spreadsheet_id: "YOUR_GOOGLE_SHEETS_SPREADSHEET_ID"
+  worksheet_title: "Sheet1"
+  # Service account JSON path, or set GOOGLE_APPLICATION_CREDENTIALS env var
+  credentials_json: "service_account.json"
+  meta_sheet_title: "_SyncMeta"
+
+sync:
+  # Unique key column shared by Sheets and Notion property
+  key: "ID"
+  # Conflict strategies: notion_wins | sheets_wins | fail
+  conflict_strategy: notion_wins
+  mirror_deletes: false
+  # Mapping between Sheets columns and Notion properties
+  columns:
+    - sheet: ID
+      notion: ID
+      type: rich_text
+    - sheet: Name
+      notion: Name
+      type: title
+    - sheet: Done
+      notion: Done
+      type: checkbox
+    - sheet: Tags
+      notion: Tags
+      type: multi_select
